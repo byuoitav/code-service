@@ -3,13 +3,13 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/byuoitav/code-service/codemap"
 	"github.com/labstack/echo"
 )
 
-//GetPreset The endpoint to get the preset from the map
-func GetPreset(context echo.Context, m map[string]string) error {
-	code := context.Param("code")
-	preset := m[code]
-
+//GetPresetHandler The endpoint to get the preset from the map
+func GetPresetHandler(context echo.Context) error {
+	controlKey := context.Param("controlKey")
+	preset := codemap.GetPresetFromMap(controlKey)
 	return context.JSON(http.StatusOK, preset)
 }
