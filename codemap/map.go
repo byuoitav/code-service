@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/byuoitav/central-event-system/hub/base"
-	"github.com/byuoitav/central-event-system/messenger"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/v2/events"
 )
 
 var m map[string]Preset
 var reqChannel chan request
+var codeReqChannel chan codeRequest
 var mapChannel chan map[string]Preset
-
-//TODO make map channel
 
 type request struct {
 	code   string
 	respch chan Preset
+}
+
+type codeRequest struct {
+	preset Preset
+	respch chan ControlKey
 }
 
 // Preset struct
@@ -31,18 +31,24 @@ type Preset struct {
 	PresetName string
 }
 
+//ControlKey struct
+type ControlKey struct {
+	ControlKey string
+}
+
 func init() {
 	reqChannel = make(chan request)
+	codeReqChannel = make(chan codeRequest)
 	mapChannel = make(chan map[string]Preset)
 	m = generateMap()
 	//send events to all of the pis
-	messenger, er := messenger.BuildMessenger("", base.Messenger, 5000)
-	if er != nil {
-		log.L.Fatalf("failed to build messenger: %s", er)
-	}
-	for key, value := range m {
-		SendEvent(key, value.RoomID, value.PresetName, *messenger)
-	}
+	// messenger, er := messenger.BuildMessenger("", base.Messenger, 5000)
+	// if er != nil {
+	// 	log.L.Fatalf("failed to build messenger: %s", er)
+	// }
+	// // for key, value := range m {
+	// // 	SendEvent(key, value.RoomID, value.PresetName, *messenger)
+	// // }
 	go startManager()
 	go refreshMap()
 }
@@ -86,7 +92,7 @@ func generateCode() string {
 	return code
 }
 
-// GetPresetFromMap this
+// GetPresetFromMap function
 func GetPresetFromMap(code string) Preset {
 	req := request{
 		code:   code,
@@ -96,52 +102,70 @@ func GetPresetFromMap(code string) Preset {
 	return <-req.respch
 }
 
+func GetControlKeyFromPreset(preset Preset) ControlKey {
+	req := codeRequest{
+		preset: preset,
+		respch: make(chan ControlKey),
+	}
+	codeReqChannel <- req
+	return <-req.respch
+}
+
 func startManager() {
 	for {
 		select {
 		case req := <-reqChannel:
 			req.respch <- m[req.code]
 			close(req.respch)
+		case req := <-codeReqChannel:
+			for key, value := range m {
+				if value == req.preset {
+					controlKey := ControlKey{
+						ControlKey: key,
+					}
+					req.respch <- controlKey
+				}
+			}
 		case newMap := <-mapChannel:
 			m = newMap
 			//send events to all of the pis
-			messenger, er := messenger.BuildMessenger("ITB-1010-CP1:7100", base.Messenger, 5000)
-			if er != nil {
-				log.L.Fatalf("failed to build messenger: %s", er)
-			}
-			for key, value := range m {
-				SendEvent(key, value.RoomID, value.PresetName, *messenger)
-				fmt.Println("Key:", key, "Value:", value)
-			}
+			// messenger, er := messenger.BuildMessenger("ITB-1010-CP1:7100", base.Messenger, 5000)
+			// if er != nil {
+			// 	log.L.Fatalf("failed to build messenger: %s", er)
+			// }
+			// for key, value := range m {
+			// 	SendEvent(key, value.RoomID, value.PresetName, *messenger)
+			// 	fmt.Println("Key:", key, "Value:", value)
+			// }
 
 		}
 	}
 }
 
-//SendEvent this emits an event that tells the pis what thier code is
-func SendEvent(controlKey string, roomID string, presetName string, runner messenger.Messenger) {
-	a := strings.Split(roomID, "-")
-	roominfo := events.BasicRoomInfo{}
-	if len(a) == 2 {
-		roominfo = events.BasicRoomInfo{
-			BuildingID: a[0],
-			RoomID:     roomID,
-		}
-	}
-	Event := events.Event{
-		Timestamp:    time.Now(),
-		Key:          "ControlKey",
-		Value:        controlKey,
-		AffectedRoom: roominfo,
-		EventTags: []string{
-			events.Heartbeat,
-		},
-		Data: presetName,
-	}
+// //SendEvent this emits an event that tells the pis what thier code is
+// func SendEvent(controlKey string, roomID string, presetName string, runner messenger.Messenger) {
+// 	a := strings.Split(roomID, "-")
+// 	roominfo := events.BasicRoomInfo{}
+// 	if len(a) == 2 {
+// 		roominfo = events.BasicRoomInfo{
+// 			BuildingID: a[0],
+// 			RoomID:     roomID,
+// 		}
+// 	}
+// 	Event := events.Event{
+// 		Timestamp:    time.Now(),
+// 		Key:          "ControlKey",
+// 		Value:        controlKey,
+// 		AffectedRoom: roominfo,
+// 		EventTags: []string{
+// 			events.Heartbeat,
+// 		},
+// 		Data: presetName,
+// 	}
 
-	runner.SendEvent(Event)
+// 	runner.SendEvent(Event)
 
-}
+// }
 
 func refreshMap() {
 	ticker := time.NewTicker(1 * time.Hour)

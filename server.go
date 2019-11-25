@@ -18,6 +18,7 @@ func main() {
 	// Functionality Endpoints
 	write := router.Group("", auth.AuthorizeRequest("write-state", "room", auth.LookupResourceFromAddress))
 	write.GET("/:controlKey/getPreset", handlers.GetPresetHandler)
+	write.GET("/:preset/getControlKey", handlers.GetControlKeyHandler)
 
 	server := http.Server{
 		Addr:           port,
