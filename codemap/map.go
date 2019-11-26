@@ -65,7 +65,7 @@ func generateMap() map[string]Preset {
 		for p := range uiConfigs[r].Presets {
 			code := generateCode()
 			_, exists := m[code]
-			for exists == true {
+			for exists {
 				code = generateCode()
 				_, exists = m[code]
 			}

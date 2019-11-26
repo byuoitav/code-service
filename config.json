@@ -1,0 +1,10 @@
+{
+	"name": "code-service",
+	"port": "8029",
+	"env-vars": [
+		"DB_ADDRESS",
+		"DB_PASSWORD",
+		"DB_USERNAME",
+		"STOP_REPLICATION"
+	]
+}
