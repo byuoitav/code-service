@@ -13,7 +13,7 @@ func GetPresetHandler(context echo.Context) error {
 	controlKey := context.Param("controlKey")
 	preset := codemap.GetPresetFromMap(controlKey)
 	if !preset.Ok {
-		return context.JSON(http.StatusInternalServerError, "The preset was not found for this control key")
+		return context.JSON(http.StatusNotFound, "The preset was not found for this control key")
 	}
 	return context.JSON(http.StatusOK, preset)
 }
@@ -27,7 +27,7 @@ func GetControlKeyHandler(context echo.Context) error {
 	}
 	controlKey := codemap.GetControlKeyFromPreset(preset)
 	if !controlKey.Ok {
-		return context.JSON(http.StatusInternalServerError, "The control key was not found for this preset")
+		return context.JSON(http.StatusNotFound, "The control key was not found for this preset")
 	}
 	return context.JSON(http.StatusOK, controlKey)
 }
