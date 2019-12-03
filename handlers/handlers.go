@@ -31,3 +31,7 @@ func GetControlKeyHandler(context echo.Context) error {
 	}
 	return context.JSON(http.StatusOK, controlKey)
 }
+
+func HealthCheck(context echo.Context) error {
+	return context.JSON(http.StatusOK, "Healthy!")
+}

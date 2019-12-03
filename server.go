@@ -14,6 +14,7 @@ func main() {
 	// Functionality Endpoints
 	router.GET("/:controlKey/getPreset", handlers.GetPresetHandler)
 	router.GET("/:preset/getControlKey", handlers.GetControlKeyHandler)
+	router.GET("/status", handlers.HealthCheck)
 
 	server := http.Server{
 		Addr:           port,

@@ -34,13 +34,9 @@ UNAME=$(shell echo $(DOCKER_USERNAME))
 EMAIL=$(shell echo $(DOCKER_EMAIL))
 PASS=$(shell echo $(DOCKER_PASSWORD))
 
-build: build-x86 build-arm
-
-build-x86:
+build:
 	env GOOS=linux CGO_ENABLED=0 $(GOBUILD) -o $(NAME)-bin -v
 
-build-arm:
-	env GOOS=linux GOARCH=arm $(GOBUILD) -o $(NAME)-arm -v
 
 test:
 	$(GOTEST) -v -race $(go list ./... | grep -v /vendor/)
@@ -61,9 +57,8 @@ ifneq "$(BRANCH)" "master"
 	$(VENDOR) github.com/byuoitav/common
 endif
 
-docker: docker-x86 docker-arm
 
-docker-x86: $(NAME)-bin
+docker: $(NAME)-bin
 ifeq "$(BRANCH)" "master"
 	$(eval BRANCH=development)
 endif
@@ -81,27 +76,6 @@ ifeq "$(BRANCH)" "development"
 	$(eval BRANCH=master)
 endif
 
-docker-arm: $(NAME)-arm
-ifeq "$(BRANCH)" "master"
-	$(eval BRANCH=development)
-endif
-ifeq "$(BRANCH)" "production"
-	$(eval BRANCH=latest)
-endif
-	$(DOCKER_BUILD) --build-arg NAME=$(NAME) -f $(DOCKER_FILE_ARM) -t $(ORG)/rpi-$(NAME):$(BRANCH) .
-	@echo logging in to dockerhub...
-	@$(DOCKER_LOGIN)
-	$(DOCKER_PUSH) $(ORG)/rpi-$(NAME):$(BRANCH)
-ifeq "$(BRANCH)" "latest"
-	$(eval BRANCH=production)
-endif
-ifeq "$(BRANCH)" "development"
-	$(eval BRANCH=master)
-endif
-
 ### deps
 $(NAME)-bin:
-	$(MAKE) build-x86
-
-$(NAME)-arm:
-	$(MAKE) build-arm
+	$(MAKE) build
