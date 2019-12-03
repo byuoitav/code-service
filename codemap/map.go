@@ -1,7 +1,6 @@
 package codemap
 
 import (
-	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -29,11 +28,13 @@ type codeRequest struct {
 type Preset struct {
 	RoomID     string
 	PresetName string
+	Ok         bool
 }
 
 //ControlKey struct
 type ControlKey struct {
 	ControlKey string
+	Ok         bool
 }
 
 func init() {
@@ -75,10 +76,10 @@ func generateMap() map[string]Preset {
 			}
 		}
 	}
-	//print out map
-	for key, value := range m {
-		fmt.Println("Key:", key, "Value:", value)
-	}
+	// //print out map
+	// for key, value := range m {
+	// 	fmt.Println("Key:", key, "Value:", value)
+	// }
 	return m
 }
 
@@ -115,16 +116,44 @@ func startManager() {
 	for {
 		select {
 		case req := <-reqChannel:
-			req.respch <- m[req.code]
+			returnedPreset, ok := m[req.code]
+			if !ok {
+				preset := Preset{
+					RoomID:     "",
+					PresetName: "",
+					Ok:         ok,
+				}
+				req.respch <- preset
+			} else {
+				preset := Preset{
+					RoomID:     returnedPreset.RoomID,
+					PresetName: returnedPreset.PresetName,
+					Ok:         ok,
+				}
+				req.respch <- preset
+			}
 			close(req.respch)
+
 		case req := <-codeReqChannel:
+			counter := 0
 			for key, value := range m {
 				if value == req.preset {
 					controlKey := ControlKey{
 						ControlKey: key,
+						Ok:         true,
 					}
+					counter = 1
 					req.respch <- controlKey
+					close(req.respch)
 				}
+			}
+			if counter == 0 {
+				controlKey := ControlKey{
+					ControlKey: "",
+					Ok:         false,
+				}
+				req.respch <- controlKey
+				close(req.respch)
 			}
 		case newMap := <-mapChannel:
 			m = newMap
